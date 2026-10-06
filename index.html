@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Спутник — твой друг рядом</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Спутник">
+<meta name="theme-color" content="#0b0d17" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" href="/static/icons/icon-192.png">
+<style>
+:root{
+  --bg:#0b0d17; --bg2:#12162a; --card:#171c31; --card2:#1d2340;
+  --txt:#eef1ff; --mut:#9aa3c7; --me:#4f7cff; --me2:#7a5cff;
+  --ai:#1e2440; --line:rgba(255,255,255,.08); --ok:#3ddc97; --warn:#ffb020; --bad:#ff5c7a;
+  --r:20px;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f2f2f7; --bg2:#e9ebf5; --card:#ffffff; --card2:#f4f5fb;
+         --txt:#12141f; --mut:#6b7290; --ai:#ffffff; --line:rgba(0,0,0,.08); }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--txt); font-size:16px; line-height:1.42;
+  -webkit-font-smoothing:antialiased; overscroll-behavior:none;
+}
+#app{
+  position:fixed; inset:0; display:flex; flex-direction:column;
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(122,92,255,.22), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(79,124,255,.18), transparent 60%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+}
+@media (prefers-color-scheme: light){
+  #app{background:linear-gradient(180deg,#f7f8fd,#eceef7)}
+}
+
+/* ---------- HEADER ---------- */
+header{
+  flex:0 0 auto; display:flex; align-items:center; gap:10px;
+  padding:10px 14px; border-bottom:1px solid var(--line);
+  background:color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%);
+}
+.avatar{
+  width:40px;height:40px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  background:conic-gradient(from 210deg,#7a5cff,#4f7cff,#3ddc97,#7a5cff);
+  box-shadow:0 4px 18px rgba(90,110,255,.45); position:relative;
+}
+.avatar span{font-size:19px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.hinfo{flex:1 1 auto;min-width:0}
+.hinfo b{display:block;font-size:16px;font-weight:650;letter-spacing:.1px}
+.hinfo small{display:block;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:5px;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent);vertical-align:1px}
+.dot.demo{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+.iconbtn{
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);
+  color:var(--txt);display:grid;place-items:center;cursor:pointer;font-size:17px;flex:0 0 auto;
+  transition:transform .12s ease, background .2s;
+}
+.iconbtn:active{transform:scale(.92)}
+.iconbtn.on{background:linear-gradient(135deg,var(--me),var(--me2));border-color:transparent;color:#fff}
+
+/* ---------- CHAT ---------- */
+#chat{
+  flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:16px 12px 8px; display:flex; flex-direction:column; gap:9px; scroll-behavior:smooth;
+}
+.daysep{align-self:center;font-size:11.5px;color:var(--mut);background:var(--card);
+  border:1px solid var(--line);padding:3px 11px;border-radius:999px;margin:6px 0}
+.msg{max-width:84%;display:flex;flex-direction:column;animation:pop .22s ease both}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.msg.ai{align-self:flex-start;align-items:flex-start}
+.bubble{
+  padding:10px 13px;border-radius:var(--r);white-space:pre-wrap;word-break:break-word;
+  box-shadow:0 2px 10px rgba(0,0,0,.16); position:relative;
+}
+.msg.me .bubble{background:linear-gradient(135deg,var(--me),var(--me2));color:#fff;border-bottom-right-radius:7px}
+.msg.ai .bubble{background:var(--ai);border:1px solid var(--line);border-bottom-left-radius:7px}
+.meta{font-size:10.5px;color:var(--mut);margin:3px 8px;display:flex;gap:8px;align-items:center}
+.meta button{background:none;border:0;color:var(--mut);font-size:10.5px;cursor:pointer;padding:0}
+.bubble img{max-width:100%;border-radius:12px;display:block;margin-top:4px}
+.typing{display:inline-flex;gap:4px;padding:4px 2px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--mut);animation:b 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.notice{align-self:center;max-width:92%;font-size:12px;color:var(--mut);background:var(--card);
+  border:1px solid var(--line);padding:8px 12px;border-radius:14px;text-align:center}
+.notice b{color:var(--txt)}
+
+/* ---------- CHIPS ---------- */
+#chips{flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:6px 12px;scrollbar-width:none}
+#chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font-size:13px;padding:7px 13px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--txt);cursor:pointer;white-space:nowrap}
+.chip:active{transform:scale(.96)}
+
+/* ---------- COMPOSER ---------- */
+#composer{
+  flex:0 0 auto;display:flex;align-items:flex-end;gap:8px;padding:8px 12px 10px;
+  border-top:1px solid var(--line);background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+#input{
+  flex:1 1 auto;min-height:42px;max-height:140px;resize:none;border-radius:21px;
+  border:1px solid var(--line);background:var(--card);color:var(--txt);
+  padding:11px 15px;font:inherit;font-size:16px;outline:none;line-height:1.35;
+}
+#input:focus{border-color:color-mix(in srgb,var(--me) 60%,transparent)}
+#input::placeholder{color:var(--mut)}
+.send{
+  width:42px;height:42px;border-radius:50%;border:0;flex:0 0 auto;cursor:pointer;color:#fff;
+  background:linear-gradient(135deg,var(--me),var(--me2));display:grid;place-items:center;font-size:18px;
+  box-shadow:0 4px 14px rgba(90,110,255,.4); transition:transform .12s;
+}
+.send:active{transform:scale(.9)}
+.send[disabled]{opacity:.4;box-shadow:none}
+#mic.rec{background:linear-gradient(135deg,#ff5c7a,#ff8a5c)!important;color:#fff;border-color:transparent!important;
+  animation:pulse 1.1s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,92,122,.5)}50%{box-shadow:0 0 0 10px rgba(255,92,122,0)}}
+
+/* ---------- SHEET ---------- */
+#sheet{
+  position:fixed;inset:0;z-index:50;display:none;
+  background:rgba(4,6,14,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+}
+#sheet.open{display:block}
+.panel{
+  position:absolute;left:0;right:0;bottom:0;top:6vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:var(--bg2);border-radius:22px 22px 0 0;border-top:1px solid var(--line);
+  padding:10px 16px calc(24px + env(safe-area-inset-bottom));animation:up .26s cubic-bezier(.2,.9,.25,1) both;
+}
+@keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+.grip{width:38px;height:4px;border-radius:99px;background:var(--mut);opacity:.5;margin:4px auto 12px}
+h2{font-size:19px;margin:2px 0 14px;font-weight:700}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--mut);margin:20px 0 8px;font-weight:650}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:9px}
+label{display:block;font-size:12.5px;color:var(--mut);margin:0 0 5px}
+input[type=text],textarea,select{
+  width:100%;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--txt);
+  padding:10px 12px;font:inherit;font-size:15px;outline:none;margin-bottom:10px;
+}
+textarea{min-height:70px;resize:vertical}
+.btn{
+  display:block;width:100%;text-align:center;padding:13px;border-radius:14px;border:1px solid var(--line);
+  background:var(--card);color:var(--txt);font:inherit;font-size:15.5px;font-weight:600;cursor:pointer;margin-bottom:8px;
+}
+.btn.primary{background:linear-gradient(135deg,var(--me),var(--me2));border-color:transparent;color:#fff}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+.btn:active{transform:scale(.985)}
+.fact{display:flex;gap:8px;align-items:flex-start;background:var(--card2);border:1px solid var(--line);
+  border-radius:12px;padding:8px 10px;margin-bottom:6px;font-size:14px}
+.fact span{flex:1 1 auto;word-break:break-word}
+.fact button{flex:0 0 auto;background:none;border:0;color:var(--bad);font-size:16px;cursor:pointer;padding:0 2px}
+.range{display:flex;align-items:center;gap:10px}
+.range input{flex:1}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 0 12px}
+.switch p{margin:0;font-size:14px}
+.tgl{width:50px;height:30px;border-radius:99px;background:var(--card2);border:1px solid var(--line);
+  position:relative;cursor:pointer;flex:0 0 auto;transition:background .2s}
+.tgl i{position:absolute;top:2.5px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--mut);transition:.2s}
+.tgl.on{background:var(--ok);border-color:transparent}
+.tgl.on i{left:23px;background:#fff}
+.muted{font-size:12.5px;color:var(--mut);line-height:1.5}
+code{background:var(--card2);padding:1px 5px;border-radius:6px;font-size:12.5px}
+.step{font-size:14px;color:var(--txt);margin-bottom:8px;padding-left:22px;position:relative;line-height:1.45}
+.step b{position:absolute;left:0;top:0;color:var(--me)}
+#toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:99;
+  background:var(--card);border:1px solid var(--line);color:var(--txt);padding:9px 16px;border-radius:999px;
+  font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;max-width:86%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.install{display:none;align-self:center;margin:0 12px 6px}
+@media (display-mode: standalone){ .install{display:none!important} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="avatar"><span>✦</span></div>
+    <div class="hinfo">
+      <b>Спутник</b>
+      <small id="status"><span class="dot"></span>загрузка…</small>
+    </div>
+    <button class="iconbtn" id="speakLast" title="Озвучить последний ответ">🔊</button>
+    <button class="iconbtn" id="openMemory" title="Что я о тебе помню">🧠</button>
+    <button class="iconbtn" id="openSettings" title="Настройки">⚙️</button>
+  </header>
+
+  <div id="chat"></div>
+
+  <div id="chips">
+    <button class="chip" data-t="Привет! Как ты?">Привет 👋</button>
+    <button class="chip" data-t="Мне сегодня тяжело, послушай меня">Мне тяжело</button>
+    <button class="chip" data-t="У меня тревога, помоги успокоиться">Тревога</button>
+    <button class="chip" data-t="Что ты обо мне помнишь?">Что ты помнишь</button>
+    <button class="chip" data-t="Расскажи шутку, подними настроение">Пошути 😄</button>
+    <button class="chip" data-t="Помоги разобрать мою ситуацию по шагам">Разобрать ситуацию</button>
+    <button class="chip" data-t="Просто поболтаем ни о чём">Поболтать</button>
+  </div>
+
+  <div id="composer">
+    <button class="iconbtn" id="photo" title="Поделиться фото">📷</button>
+    <button class="iconbtn" id="mic" title="Говорить голосом">🎙️</button>
+    <textarea id="input" rows="1" placeholder="Напиши или нажми микрофон…" autocomplete="off"></textarea>
+    <button class="send" id="send" title="Отправить">➤</button>
+  </div>
+  <input type="file" id="file" accept="image/*" hidden>
+</div>
+
+<!-- ПАМЯТЬ -->
+<div id="sheet">
+  <div class="panel" id="panel"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ======================================================================= */
+/*  СПУТНИК — клиент                                                       */
+/* ======================================================================= */
+const $ = s => document.querySelector(s);
+const chat = $("#chat"), input = $("#input"), sendBtn = $("#send");
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem("sputnik."+k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k, v){ try{ localStorage.setItem("sputnik."+k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem("sputnik."+k); }catch(e){} }
+};
+
+let STATE = {profile:{}, facts:[], summary:"", provider:"demo", model:"demo", messages:[]};
+let pendingImages = [];   // dataURL
+let busy = false;
+let lastReply = "";
+let currentTTsAbort = null;
+
+/* ---------------- утилиты ---------------- */
+function toast(t, ms=2400){ const el=$("#toast"); el.textContent=t; el.classList.add("show");
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("show"), ms); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function md(s){
+  let t = esc(s);
+  t = t.replace(/```([\s\S]*?)```/g, (m,p)=>`<pre style="white-space:pre-wrap;background:var(--card2);padding:8px 10px;border-radius:10px;font-size:13px;overflow:auto">${p}</pre>`);
+  t = t.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  t = t.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+  t = t.replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<i>$2</i>");
+  t = t.replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,!?])/g, "$1<i>$2</i>");
+  t = t.replace(/\bhttps?:\/\/[^\s<]+/g, u=>`<a href="${u}" target="_blank" rel="noopener" style="color:#8fb0ff">${u}</a>`);
+  return t;
+}
+function hhmm(ts){ const d = ts? new Date(ts*1000) : new Date();
+  return d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}); }
+function dayLabel(ts){ const d = ts? new Date(ts*1000): new Date(); const t=new Date();
+  const same=(a,b)=>a.toDateString()===b.toDateString();
+  if(same(d,t)) return "Сегодня";
+  const y=new Date(t.getTime()-86400000); if(same(d,y)) return "Вчера";
+  return d.toLocaleDateString("ru-RU",{day:"numeric",month:"long"}); }
+function scrollDown(force){
+  const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 220;
+  if(force || near) chat.scrollTop = chat.scrollHeight;
+}
+function saveMirror(){ LS.set("mirror", STATE.messages.slice(-400)); }
+
+/* ---------------- отрисовка ---------------- */
+let lastDay = null;
+function addDaySep(ts){
+  const l = dayLabel(ts);
+  if(l === lastDay) return; lastDay = l;
+  const d = document.createElement("div"); d.className="daysep"; d.textContent=l; chat.appendChild(d);
+}
+function renderMessage(m, animate=true){
+  addDaySep(m.ts);
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + (m.role==="user" ? "me" : "ai");
+  if(!animate) wrap.style.animation="none";
+  const b = document.createElement("div"); b.className="bubble";
+  let html = "";
+  if(m.images && m.images.length){
+    html += m.images.map(u=>`<img src="${u}" alt="фото">`).join("");
+  }
+  html += md(m.content || "");
+  b.innerHTML = html || "<i style='opacity:.6'>(пусто)</i>";
+  wrap.appendChild(b);
+  const meta = document.createElement("div"); meta.className="meta";
+  meta.innerHTML = `<span>${hhmm(m.ts)}</span>`;
+  if(m.role==="assistant"){
+    const sp = document.createElement("button"); sp.textContent="🔊 озвучить";
+    sp.onclick = ()=>speak(m.content);
+    const cp = document.createElement("button"); cp.textContent="копировать";
+    cp.onclick = async ()=>{ try{ await navigator.clipboard.writeText(m.content); toast("Скопировано"); }catch(e){ toast("Не удалось скопировать"); } };
+    meta.append(sp, cp);
+  }
+  wrap.appendChild(meta);
+  chat.appendChild(wrap);
+  return {wrap, bubble:b};
+}
+function renderAll(){
+  chat.innerHTML=""; lastDay=null;
+  const msgs = STATE.messages;
+  if(!msgs.length){
+    const n=document.createElement("div"); n.className="notice";
+    n.innerHTML = `Привет! Я <b>Спутник</b> — твой личный друг в телефоне.<br>
+      Расскажи о себе: как тебя зовут, чем живёшь, что тебя радует и что тревожит.<br>
+      Я <b>запомню</b> и буду знать это всегда.`;
+    chat.appendChild(n);
+  } else {
+    msgs.forEach(m=>renderMessage(m,false));
+  }
+  requestAnimationFrame(()=>{ chat.scrollTop = chat.scrollHeight; });
+}
+
+/* ---------------- голос: озвучка ---------------- */
+const synth = window.speechSynthesis;
+function pickVoice(){
+  if(!synth) return null;
+  const vs = synth.getVoices();
+  const ru = vs.filter(v=>/^ru/i.test(v.lang));
+  const pref = LS.get("voiceName", null);
+  if(pref){ const f = ru.find(v=>v.name===pref); if(f) return f; }
+  return ru.find(v=>/Milena|Katya|Yuri|Google русский|Siri/i.test(v.name)) || ru[0] || null;
+}
+if(synth){ synth.onvoiceschanged = ()=>{}; }
+function speak(text, opts={}){
+  if(!synth){ toast("Озвучка не поддерживается этим браузером"); return; }
+  const on = opts.force ? true : LS.get("tts", true);
+  if(!on) return;
+  synth.cancel();
+  const chunks = splitSpeak(text);
+  chunks.forEach((c,i)=>{
+    const u = new SpeechSynthesisUtterance(c);
+    const v = pickVoice(); if(v) u.voice = v;
+    u.lang = "ru-RU"; u.rate = LS.get("rate", 1.0); u.pitch = LS.get("pitch", 1.0);
+    synth.speak(u);
+  });
+}
+function splitSpeak(t){
+  let s = String(t||"")
+    .replace(/\[\[memory:[\s\S]*?\]\]/g,"")
+    .replace(/```[\s\S]*?```/g," (код) ")
+    .replace(/[*_`#>]/g,"")
+    .replace(/https?:\/\/\S+/g," ссылка ")
+    .replace(/\n{2,}/g,". ");
+  const parts = s.split(/(?<=[.!?…])\s+/).filter(x=>x.trim().length);
+  const out=[]; let cur="";
+  for(const p of parts){
+    if((cur+" "+p).length > 210 && cur){ out.push(cur); cur=p; } else cur = cur? cur+" "+p : p;
+  }
+  if(cur) out.push(cur);
+  return out.length? out : [s.trim()].filter(Boolean);
+}
+/* плавная озвучка по мере поступления текста */
+let ttsQueue = "", ttsTimer = null;
+function streamSpeak(delta){
+  if(!LS.get("tts", true) || !synth) return;
+  ttsQueue += delta;
+  clearTimeout(ttsTimer);
+  ttsTimer = setTimeout(()=>{
+    const m = ttsQueue.match(/^[\s\S]*?[.!?…](\s|$)/);
+    if(m){ const part = m[0]; ttsQueue = ttsQueue.slice(part.length); speak(part, {force:true}); }
+  }, 260);
+}
+function flushSpeak(){
+  if(ttsQueue.trim()){ speak(ttsQueue, {force:true}); ttsQueue=""; }
+}
+
+/* ---------------- голос: запись ---------------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, recognizing = false;
+let mediaRec = null, recChunks = [], recStream = null, recStart = 0;
+
+function startMic(){
+  if(recognizing) return;
+  if(SR && LS.get("useSR", true)){
+    try{
+      recog = new SR();
+      recog.lang = "ru-RU"; recog.continuous = false; recog.interimResults = true;
+      recog.maxAlternatives = 1;
+      let base = input.value.trim(); let finalText = "";
+      recog.onstart = ()=>{ recognizing=true; $("#mic").classList.add("rec"); toast("Слушаю… говори"); };
+      recog.onresult = (e)=>{
+        let inter="";
+        for(let i=e.resultIndex;i<e.results.length;i++){
+          const r=e.results[i];
+          if(r.isFinal) finalText += r[0].transcript; else inter += r[0].transcript;
+        }
+        input.value = (base? base+" ":"") + (finalText+inter).trim();
+        autoGrow();
+      };
+      recog.onerror = (e)=>{
+        recognizing=false; $("#mic").classList.remove("rec");
+        if(e.error === "not-allowed" || e.error === "service-not-allowed"){
+          toast("Нет доступа к микрофону. Разреши в настройках Safari.");
+        } else if(e.error === "no-speech"){ toast("Не расслышал. Попробуй ещё раз"); }
+        else { toast("Диктовка недоступна — включил запись звука"); startRecorder(); }
+      };
+      recog.onend = ()=>{ recognizing=false; $("#mic").classList.remove("rec");
+        if(input.value.trim()) toast("Готово. Можешь дополнить или отправить"); };
+      recog.start();
+      return;
+    }catch(err){ /* fallthrough */ }
+  }
+  startRecorder();
+}
+function stopMic(){
+  if(recog && recognizing){ try{ recog.stop(); }catch(e){} }
+  if(mediaRec && mediaRec.state==="recording") mediaRec.stop();
+}
+async function startRecorder(){
+  try{
+    recStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  }catch(e){
+    toast("Микрофон недоступен. Напиши текстом 💬"); return;
+  }
+  recChunks=[]; recStart=Date.now();
+  const types = ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"];
+  const mime = types.find(t=>MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
+  try{ mediaRec = new MediaRecorder(recStream, mime?{mimeType:mime}:undefined); }
+  catch(e){ toast("Запись звука не поддерживается"); recStream.getTracks().forEach(t=>t.stop()); return; }
+  mediaRec.ondataavailable = e=>{ if(e.data && e.data.size) recChunks.push(e.data); };
+  mediaRec.onstop = async ()=>{
+    recStream.getTracks().forEach(t=>t.stop());
+    $("#mic").classList.remove("rec"); recognizing=false;
+    const dur = (Date.now()-recStart)/1000;
+    if(dur < 0.6){ toast("Слишком коротко"); return; }
+    const blob = new Blob(recChunks, {type: mediaRec.mimeType || "audio/webm"});
+    toast("Расшифровываю…");
+    const fd = new FormData();
+    const ext = (blob.type.includes("mp4")?"m4a": blob.type.includes("ogg")?"ogg":"webm");
+    fd.append("file", blob, "voice."+ext);
+    try{
+      const r = await fetch("/api/transcribe", {method:"POST", body:fd});
+      const j = await r.json();
+      if(j.text){ input.value = (input.value.trim()? input.value.trim()+" ":"") + j.text.trim(); autoGrow(); toast("Готово ✨"); }
+      else { toast(j.hint || j.error || "Не получилось расшифровать"); }
+    }catch(e){ toast("Сервер не ответил"); }
+  };
+  mediaRec.start(); recognizing=true; $("#mic").classList.add("rec");
+  toast("Идёт запись — нажми ещё раз, чтобы остановить");
+}
+
+/* ---------------- сеть ---------------- */
+async function loadState(){
+  try{
+    const r = await fetch("/api/state"); STATE = await r.json();
+  }catch(e){
+    STATE.messages = LS.get("mirror", []); STATE.provider="offline";
+    setStatus("offline","нет связи с сервером");
+    renderAll(); return;
+  }
+  if(!STATE.messages || !STATE.messages.length){
+    const mirror = LS.get("mirror", []);
+    if(mirror.length) STATE.messages = mirror;
+  }
+  renderAll();
+  updateStatus();
+  maybeProactive();
+}
+function updateStatus(){
+  const p = STATE.provider;
+  if(p === "demo"){
+    setStatus("demo", "демо-режим · память работает · тапни ⚙️ чтобы оживить");
+  } else if(p === "offline"){
+    setStatus("offline", "сервер не отвечает");
+  } else {
+    setStatus("online", `${p} · ${STATE.model||""} · помню ${ (STATE.facts||[]).length } фактов`);
+  }
+}
+function setStatus(kind, text){
+  $("#status").innerHTML = `<span class="dot ${kind==='demo'||kind==='offline'?'demo':''}"></span>${esc(text)}`;
+}
+async function maybeProactive(){
+  const last = LS.get("lastSeen", 0);
+  const now = Date.now()/1000;
+  const hours = STATE.messages.length ? 10 : 1e9;
+  if(last && now - last > hours*3600 && STATE.provider !== "offline"){
+    try{
+      const r = await fetch("/api/proactive", {method:"POST"});
+      const j = await r.json();
+      if(j.text){
+        const m = {role:"assistant", content:j.text, ts: now};
+        STATE.messages.push(m); renderMessage(m); saveMirror(); scrollDown(true);
+        speak(j.text);
+      }
+    }catch(e){}
+  }
+  LS.set("lastSeen", now);
+}
+
+/* ---------------- отправка ---------------- */
+function autoGrow(){
+  input.style.height="auto";
+  input.style.height = Math.min(input.scrollHeight, 140)+"px";
+}
+async function send(textOverride){
+  const text = (textOverride !== undefined ? textOverride : input.value).trim();
+  if(busy) return;
+  if(!text && !pendingImages.length) return;
+
+  busy = true; sendBtn.disabled = true;
+  const imgs = pendingImages.slice();
+  pendingImages = [];
+  input.value=""; autoGrow();
+
+  const mine = {role:"user", content:text, ts:Date.now()/1000, images:imgs};
+  STATE.messages.push(mine); renderMessage(mine); saveMirror(); scrollDown(true);
+
+  const {wrap, bubble} = renderMessage({role:"assistant", content:"", ts:Date.now()/1000});
+  bubble.innerHTML = `<div class="typing"><i></i><i></i><i></i></div>`;
+  scrollDown(true);
+
+  let acc = "", started = false, donePayload = null;
+  ttsQueue = "";
+  try{
+    const resp = await fetch("/api/chat", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({message:text, images:imgs})
+    });
+    if(!resp.ok || !resp.body) throw new Error("HTTP "+resp.status);
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      let idx;
+      while((idx = buf.indexOf("\n\n")) !== -1){
+        const raw = buf.slice(0, idx); buf = buf.slice(idx+2);
+        const ev = parseSSE(raw);
+        if(!ev) continue;
+        if(ev.event === "delta"){
+          if(!started){ started=true; bubble.innerHTML=""; }
+          acc += ev.data.t || "";
+          bubble.innerHTML = md(acc);
+          streamSpeak(ev.data.t || "");
+          scrollDown();
+        } else if(ev.event === "done"){
+          donePayload = ev.data;
+        } else if(ev.event === "start"){
+          if(ev.data.provider === "demo") {}
+        }
+      }
+    }
+  }catch(e){
+    acc = acc || `⚠️ Не получилось отправить: ${e.message}. Проверь, что сервер запущен.`;
+    bubble.innerHTML = md(acc);
+  }
+  if(!started && acc) bubble.innerHTML = md(acc);
+  flushSpeak();
+
+  const finalText = (donePayload && donePayload.text) || acc;
+  STATE.messages[STATE.messages.length-1] = {role:"assistant", content:finalText, ts:Date.now()/1000};
+  lastReply = finalText;
+  if(donePayload){
+    STATE.facts = donePayload.facts || STATE.facts;
+    STATE.profile = donePayload.profile || STATE.profile;
+    if(donePayload.new_facts && donePayload.new_facts.length){
+      toast("🧠 Запомнил: " + donePayload.new_facts[0].slice(0,60));
+    }
+    updateStatus();
+  }
+  saveMirror();
+  busy=false; sendBtn.disabled=false;
+  scrollDown(true);
+}
+function parseSSE(raw){
+  let event="message", dataLines=[];
+  for(const line of raw.split("\n")){
+    if(line.startsWith("event:")) event = line.slice(6).trim();
+    else if(line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  }
+  if(!dataLines.length) return null;
+  try{ return {event, data: JSON.parse(dataLines.join("\n"))}; }
+  catch(e){ return {event, data:{t:dataLines.join("\n")}}; }
+}
+
+/* ---------------- панели ---------------- */
+function openSheet(html){
+  $("#panel").innerHTML = `<div class="grip"></div>` + html;
+  $("#sheet").classList.add("open");
+  $("#panel").scrollTop = 0;
+}
+function closeSheet(){ $("#sheet").classList.remove("open"); }
+$("#sheet").addEventListener("click", e=>{ if(e.target.id==="sheet") closeSheet(); });
+
+function memoryPanel(){
+  const facts = STATE.facts||[];
+  openSheet(`
+    <h2>🧠 Что я о тебе помню</h2>
+    <div class="card">
+      <label>Как тебя зовут</label>
+      <input type="text" id="pName" value="${esc(STATE.profile.name||"")}" placeholder="Имя">
+      <label>Что мне важно знать о тебе</label>
+      <textarea id="pAbout" placeholder="Возраст, город, чем занимаешься, кто тебе близок, что важно">${esc(STATE.profile.about||"")}</textarea>
+      <label>Как с тобой общаться</label>
+      <input type="text" id="pStyle" value="${esc(STATE.profile.style||"")}" placeholder="напр.: без сюсюканья, коротко, с юмором">
+      <button class="btn primary" id="saveProfile">Сохранить</button>
+    </div>
+
+    <h3>Факты (${facts.length})</h3>
+    ${facts.length ? facts.map(f=>`<div class="fact"><span>${esc(f)}</span><button data-del="${esc(f)}">✕</button></div>`).join("")
+      : `<div class="muted">Пока пусто. Просто напиши мне: «запомни, что …» — и я сохраню.</div>`}
+    <div class="card" style="margin-top:10px">
+      <label>Добавить факт вручную</label>
+      <input type="text" id="newFact" placeholder="напр.: Работает дизайнером, любит кофе без сахара">
+      <button class="btn" id="addFact">Добавить</button>
+    </div>
+
+    ${STATE.summary ? `<h3>Кратко о наших разговорах</h3><div class="card muted">${md(STATE.summary)}</div>` : ""}
+
+    <button class="btn" id="closeSheet1">Закрыть</button>
+  `);
+  $("#closeSheet1").onclick = closeSheet;
+  $("#saveProfile").onclick = async ()=>{
+    const body = {name:$("#pName").value, about:$("#pAbout").value, style:$("#pStyle").value};
+    await fetch("/api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    STATE.profile = {...STATE.profile, ...body}; saveMirror(); toast("Сохранил 👌"); updateStatus();
+  };
+  $("#addFact").onclick = async ()=>{
+    const v = $("#newFact").value.trim(); if(!v) return;
+    const r = await fetch("/api/facts/add",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({facts:[v]})});
+    const j = await r.json(); STATE.facts = j.facts||[]; toast("Запомнил 🧠"); memoryPanel();
+  };
+  $("#panel").querySelectorAll("[data-del]").forEach(b=>{
+    b.onclick = async ()=>{
+      await fetch("/api/forget",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({facts:[b.dataset.del]})});
+      const r = await fetch("/api/state"); STATE = await r.json(); toast("Забыл этот факт"); memoryPanel(); updateStatus();
+    };
+  });
+}
+
+function settingsPanel(){
+  const voices = (synth? synth.getVoices():[]).filter(v=>/^ru/i.test(v.lang));
+  const cur = LS.get("voiceName","");
+  openSheet(`
+    <h2>⚙️ Настройки</h2>
+
+    <h3>Голос</h3>
+    <div class="card">
+      <div class="switch">
+        <p>Озвучивать ответы вслух</p>
+        <div class="tgl ${LS.get("tts",true)?"on":""}" id="tglTts"><i></i></div>
+      </div>
+      <div class="switch">
+        <p>Диктовка через Safari (быстрее)</p>
+        <div class="tgl ${LS.get("useSR",true)?"on":""}" id="tglSr"><i></i></div>
+      </div>
+      <label>Темп речи: <span id="rateV">${LS.get("rate",1.0)}</span></label>
+      <div class="range"><input type="range" id="rate" min="0.6" max="1.5" step="0.05" value="${LS.get("rate",1.0)}"></div>
+      <label>Голос</label>
+      <select id="voiceSel">
+        <option value="">— автоматически —</option>
+        ${voices.map(v=>`<option value="${esc(v.name)}" ${v.name===cur?"selected":""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}
+      </select>
+      <button class="btn" id="testVoice">Проверить голос</button>
+      ${voices.length? "":`<div class="muted">Русские голоса не найдены. На iPhone: Настройки → Универсальный доступ → Устный контент → Голоса → Русский → скачать голос.</div>`}
+    </div>
+
+    <h3>Характер Спутника</h3>
+    <div class="card">
+      <select id="personaSel">
+        <option value="cheer">Бодрый и с юмором</option>
+        <option value="warm">Тёплый и заботливый</option>
+        <option value="honest">Честный и прямой</option>
+      </select>
+      <button class="btn" id="savePersona">Применить характер</button>
+      <div class="muted">Сейчас: <b>${esc({demo:"демо",openrouter:"OpenRouter",openai:"OpenAI",offline:"офлайн"}[STATE.provider]||STATE.provider)}</b>
+      ${STATE.model && STATE.provider!=="demo" ? ` · модель <code>${esc(STATE.model)}</code>` : ""}</div>
+    </div>
+
+    <h3>Как включить «живой» мозг</h3>
+    <div class="card">
+      <div class="step"><b>1</b> Зайди на <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:#8fb0ff">openrouter.ai/keys</a>, войди через Google и нажми <i>Create Key</i>.</div>
+      <div class="step"><b>2</b> Пополни баланс на 5–10$ (или выбери бесплатную модель).</div>
+      <div class="step"><b>3</b> На компьютере, где запущен Спутник, открой файл <code>.env</code> и впиши ключ в строку <code>OPENROUTER_API_KEY=</code>.</div>
+      <div class="step"><b>4</b> Перезапусти сервер: <code>python3 server.py</code> — и я стану настоящим собеседником.</div>
+      <div class="muted" style="margin-top:6px">Память, профиль и история при этом не потеряются.</div>
+    </div>
+
+    <h3>Установить на iPhone</h3>
+    <div class="card">
+      <div class="step"><b>1</b> Открой этот адрес в <b>Safari</b> (не в Chrome).</div>
+      <div class="step"><b>2</b> Нажми кнопку «Поделиться» <span style="font-size:15px">⎋</span> внизу экрана.</div>
+      <div class="step"><b>3</b> Выбери <b>«На экран Домой»</b> → «Добавить».</div>
+      <div class="step"><b>4</b> На домашнем экране появится иконка ✦ — открывай как обычное приложение, без адресной строки.</div>
+    </div>
+
+    <h3>Данные</h3>
+    <div class="card">
+      <button class="btn" id="exportBtn">Скачать нашу переписку (.txt)</button>
+      <button class="btn danger" id="clearHist">Очистить переписку (память о тебе останется)</button>
+      <button class="btn danger" id="wipeAll">Забыть меня полностью</button>
+    </div>
+
+    <button class="btn" id="closeSheet2">Закрыть</button>
+  `);
+  $("#personaSel").value = STATE.profile.persona || "cheer";
+  $("#closeSheet2").onclick = closeSheet;
+  $("#tglTts").onclick = e=>{ const v=!LS.get("tts",true); LS.set("tts",v); e.currentTarget.classList.toggle("on",v); if(v) speak("Так лучше слышно?"); };
+  $("#tglSr").onclick = e=>{ const v=!LS.get("useSR",true); LS.set("useSR",v); e.currentTarget.classList.toggle("on",v); };
+  $("#rate").oninput = e=>{ LS.set("rate", parseFloat(e.target.value)); $("#rateV").textContent = e.target.value; };
+  $("#voiceSel").onchange = e=>{ LS.set("voiceName", e.target.value); speak("Проверяю этот голос. Как звучит?"); };
+  $("#testVoice").onclick = ()=>speak("Привет! Я Спутник. Я рядом, я тебя слушаю и я всё запомню.", {force:true});
+  $("#savePersona").onclick = async ()=>{
+    const v = $("#personaSel").value;
+    await fetch("/api/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({persona:v})});
+    STATE.profile.persona=v; toast("Характер обновлён");
+  };
+  $("#exportBtn").onclick = exportChat;
+  $("#clearHist").onclick = async ()=>{
+    if(!confirm("Удалить всю переписку? То, что я о тебе помню, останется.")) return;
+    await fetch("/api/history",{method:"DELETE"});
+    STATE.messages=[]; renderAll(); toast("Переписка очищена"); closeSheet();
+  };
+  $("#wipeAll").onclick = async ()=>{
+    if(!confirm("Я забуду всё: имя, факты, историю. Точно?")) return;
+    await fetch("/api/all",{method:"DELETE"}); LS.del("mirror"); LS.del("lastSeen");
+    STATE={profile:{},facts:[],summary:"",messages:[],provider:STATE.provider,model:STATE.model};
+    renderAll(); toast("Чистый лист"); closeSheet();
+  };
+}
+function exportChat(){
+  const lines = STATE.messages.map(m=>`[${new Date(m.ts*1000).toLocaleString("ru-RU")}] ${m.role==="user"?"Я":"Спутник"}: ${m.content}`);
+  const blob = new Blob(["СПУТНИК — наша переписка\n\n"+lines.join("\n\n")], {type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="sputnik-chat.txt"; a.click();
+}
+
+/* ---------------- фото ---------------- */
+$("#photo").onclick = ()=>$("#file").click();
+$("#file").onchange = async e=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const url = await shrink(f, 1024);
+  pendingImages.push(url);
+  toast("Фото прикреплено 📎 — можно добавить текст и отправить");
+  input.placeholder = "Фото прикреплено, добавь подпись…";
+  e.target.value="";
+};
+function shrink(file, max){
+  return new Promise(res=>{
+    const img = new Image(); const fr = new FileReader();
+    fr.onload = ()=>{ img.onload = ()=>{
+      const s = Math.min(1, max/Math.max(img.width,img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL("image/jpeg", 0.82));
+      URL.revokeObjectURL(img.src);
+    }; img.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ---------------- события ---------------- */
+sendBtn.onclick = ()=>send();
+input.addEventListener("keydown", e=>{
+  if(e.key==="Enter" && !e.shiftKey && !/Mobi|iPhone|iPad/i.test(navigator.userAgent)){ e.preventDefault(); send(); }
+});
+input.addEventListener("input", autoGrow);
+$("#mic").onclick = ()=>{ recognizing ? stopMic() : startMic(); };
+$("#openSettings").onclick = settingsPanel;
+$("#openMemory").onclick = memoryPanel;
+$("#speakLast").onclick = ()=>{
+  const on = !LS.get("tts", true);
+  if(on){ LS.set("tts", true); speak(lastReply || "Привет! Я рядом.", {force:true}); $("#speakLast").classList.add("on"); toast("Озвучка включена 🔊"); }
+  else { LS.set("tts", false); if(synth) synth.cancel(); $("#speakLast").classList.remove("on"); toast("Озвучка выключена 🔇"); }
+};
+$("#chips").addEventListener("click", e=>{
+  const b = e.target.closest(".chip"); if(!b) return; send(b.dataset.t);
+});
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden){ LS.set("lastSeen", Date.now()/1000); } });
+
+/* горячая клавиша: двойной тап по шапке — озвучить последнее */
+let lastTap=0;
+document.querySelector("header").addEventListener("click", e=>{
+  if(e.target.closest("button")) return;
+  const now=Date.now(); if(now-lastTap<320){ speak(lastReply, {force:true}); } lastTap=now;
+});
+
+/* ---------------- старт ---------------- */
+(async function init(){
+  autoGrow();
+  const savedTts = LS.get("tts", true);
+  $("#speakLast").classList.toggle("on", !!savedTts);
+  await loadState();
+  setInterval(()=>{ if(!busy) loadStateSilently(); }, 60000);
+  if(synth){ setTimeout(()=>{ synth.getVoices(); }, 400); }
+})();
+async function loadStateSilently(){
+  try{
+    const r = await fetch("/api/state"); const j = await r.json();
+    STATE.facts = j.facts; STATE.summary = j.summary; STATE.profile = j.profile;
+    STATE.provider = j.provider; STATE.model = j.model; updateStatus();
+  }catch(e){ setStatus("offline","нет связи с сервером"); }
+}
+</script>
+</body>
+</html>
